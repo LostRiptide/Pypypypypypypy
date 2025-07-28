@@ -1,0 +1,128 @@
+import os
+import requests
+import random
+
+
+
+
+
+
+
+
+class Char:
+	
+	def __init__(self, name, xp):
+
+		self.name = name
+		self.xp = int(xp)
+		self.lvl = 1
+		greater = False
+		if self.xp < 0: 
+			print("Invalid xp!")
+		elif self.xp > 18360:
+			self.lvl = 18
+		else:
+			while greater == False:
+				if 50*self.lvl**2 + 130*self.lvl -180 > self.xp:
+					greater = True
+				else:
+					self.lvl += 1
+
+		self.ad = 55 + 5*self.lvl
+		self.armor = 33 + 5*self.lvl
+		self.hp = 650+ 114*self.lvl
+		self.crit_percent = .05 * self.lvl
+		self.ult = False
+		self.ultAD = 0
+	def is_alive(self):
+		return self.hp > 0
+
+	def attack(self, enemy):
+		self.ultimate()
+		self.deal_damage(enemy)
+
+
+	def deal_damage(self, npc):
+		crit = random.random() < self.crit_percent
+		damage = self.ad * 100 / (100 + npc.armor)
+		if self.ult == True:
+			damage = damage + self.ultAD
+			self.ult = False
+		if crit == True:
+			damage = damage*2
+		npc.hp -= damage
+
+		print(f"{npc.name} was damaged {damage} and health is {npc.hp}")
+		if npc.hp <=0:
+			print(f"{npc.name} died!")
+
+
+	def ultimate(self):
+		ultName = wiki()
+		self.ult = True
+		self.ultAD = len(ultName)
+
+
+	def youdamaged(self, amount):
+
+		self.hp -= amount
+		print(f'')
+		print(f"{self.name} was damaged {amount} and health is {self.hp}")
+		if self.hp <= 0:
+			print("You died!")
+
+
+	def npcdamage(self, npc):
+		damage = npc.ad * 100 / (100 + self.armor)
+		self.youdamaged(damage)
+		
+def battle(char1, char2):
+	print(f" {char1.name} vs {char2.name} ")
+	attacker, defender = char1, char2
+	while char1.is_alive() and char2.is_alive():
+		attacker.attack(defender)
+		attacker, defender = defender, attacker  # swap turns
+	winner = char1 if char1.is_alive() else char2
+	loser = char2 if winner == char1 else char1
+	print(f"🏆 {winner.name} wins!")
+	xp_gain = 100 * loser.lvl
+	winner.xp += xp_gain
+	winner.lvl = 0
+	print(f"{winner.name} gained {xp_gain} XP!")
+	if winner.xp < 0: 
+		print("Invalid xp!")
+	elif winner.xp > 18360:
+		winner.lvl = 18
+	else:
+		greater = False
+		while greater == False:
+			if 50*winner.lvl**2 + 130*winner.lvl -180 > winner.xp:
+				greater = True
+			else:
+				winner.lvl += 1
+	winner.ad = 55 + 5*winner.lvl
+	winner.armor = 33 + 5*winner.lvl
+	winner.hp = 650+ 114*winner.lvl
+	winner.crit_percent = .05 * winner.lvl
+	return winner
+def wiki():
+	response = requests.get("https://en.wikipedia.org/wiki/Special:Random", allow_redirects=True)
+	return response.url.split("/wiki/")[-1].replace("_", " ")
+
+
+rounds = int(input("How many rounds should we have?"))
+num_chars = 2 ** rounds
+characters = []
+for i in range(num_chars):
+	name = input("Name:")
+	xp = int(input("XP:"))
+	characters.append(Char(name, xp))
+
+while len(characters) > 1:
+	random.shuffle(characters)
+	next_round = []
+	for i in range(0, len(characters), 2):
+		winner = battle(characters[i], characters[i + 1])
+		next_round.append(winner)
+	characters = next_round
+print(f"The winner is {characters[0].name} with {characters[0].xp} XP and level {characters[0].lvl}")
